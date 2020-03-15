@@ -1,0 +1,8 @@
+{
+  "difficulty": {
+    "EASY": [0.1, 3],
+    "MEDIUM": [0.2, 2],
+    "HARD": [0.3, 1]
+  },
+  "default": {"difficulty": "EASY"}
+}
