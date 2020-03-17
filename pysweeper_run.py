@@ -1,4 +1,5 @@
 import pygame
+from minesweeper_data import MineSweeper
 from pygame.locals import *
 
 pygame.init()
@@ -10,18 +11,11 @@ black = (0, 0, 0)
 white = (255, 255, 255)
 red = (255, 0, 0)
 
-car_width = 73
+current_game = MineSweeper()
 
 gameDisplay = pygame.display.set_mode((display_width, display_height))
 pygame.display.set_caption('PySweeper')
 clock = pygame.time.Clock()
-
-carImg = pygame.image.load('snake.png')
-
-
-def car(x, y):
-    gameDisplay.blit(carImg, (x, y))
-
 
 def game_loop():
     x = (display_width * 0.45)
@@ -47,8 +41,11 @@ def game_loop():
                 4 - scroll up
                 5 - scroll down
                 '''
+                if event.button == 1:
+                    current_game.select(x, y)
+                if event.button == 3:
+                    current_game.select(x, y, 'm')
             gameDisplay.fill(white)
-            car(x, y)
             pygame.display.update()
             clock.tick(60)
 

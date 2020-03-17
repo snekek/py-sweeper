@@ -1,5 +1,6 @@
 from random import randrange
 import json
+from os import system
 
 from time import sleep
 
@@ -19,6 +20,8 @@ class MineSweeper:
             difficulty = self._CONFIG["default"]["difficulty"]
         self.tot_mines = round(self.height * self.width * self._DIFFICULTY[difficulty][0])
         self.max_tries = self._DIFFICULTY[difficulty][1]
+        self.flagged = []
+        self.bombs = []
 
         if isinstance(mines, int):
             if 0 < mines < self.height * self.width:
@@ -45,7 +48,7 @@ class MineSweeper:
             while grid[y][x] == '*':
                 y, x = randrange(0, self.height), randrange(0, self.width)
             grid[y][x] = '*'
-
+            self.bombs.append([y, x])
             for h in range(-1, 2):
                 for w in range(-1, 2):
                     if self.is_valid(x+w, y+h):
@@ -53,40 +56,59 @@ class MineSweeper:
                             grid[y + h][x + w] += 1
         return grid
 
-    def select(self, x, y):
-        if self.is_valid(x, y) and [x, y] not in self.uncovered:
-            self.uncovered.append([x, y])
+    def select(self, y, x, s=None):
+        if self.is_valid(y, x) and [y, x] not in self.uncovered:
+            if s is None:
+                self.uncovered.append([y, x])
             if self.grid[y][x] == '*':
-                self.tries_left -= 1
-                if self.tries_left <= 0:
-                    self.game = False
+                if s is None:
+                    self.tries_left -= 1
+                    if self.tries_left <= 0:
+                        self.game = False
+                else:
+                    self.flagged.append([y, x])
             elif self.grid[y][x] == 0:
-                for h in range(-1, 2):
-                    for w in range(-1, 2):
-                        nx = x + w
-                        ny = y + h
-                        if self.is_valid(nx, ny) and not (w == 0 and h == 0):
-                            if self.grid[ny][nx] == 0 and ([ny, nx] not in self.uncovered):
-                                self.select(nx, ny)
+                if s is None:
+                    self.check_nearby_empty(y, x)
+                else:
+                    self.flagged.append([y, x])
+            for bomb in self.bombs:
+                if bomb in self.uncovered or bomb in self.flagged:
+                    self.game = False
 
             return True
         else:
             return False
 
-    def is_valid(self, x, y):
+    def check_nearby_empty(self, y, x):
+        # x and y offset!
+        for yo in range(-1, 2):
+            for xo in range(-1, 2):
+                if self.is_valid(y+yo, x+xo):
+                    if self.grid[y+yo][x+xo] == 0 and (not [y+yo, x+xo] in self.uncovered):
+                        self.uncovered.append([y+yo, x+xo])
+                        self.check_nearby_empty(y+yo, x+xo)
+
+    def is_valid(self, y, x):
         if isinstance(x, int) and isinstance(y, int):
             return (0 <= x < self.width) and (0 <= y < self.height)
         return False
 
     def get_visible(self):
+        row = "y|"
+        for i in range(self.width):
+            row += f"_{i}_"
+        print(row+"x")
         for y in range(self.height):
-            row = ""
+            row = f"{y}|"
             for x in range(self.width):
-                if [x, y] in self.uncovered:
+                if [y, x] in self.uncovered:
                     if self.grid[y][x] == 0:
                         row += f"   "
                     else:
                         row += f" {self.grid[y][x]} "
+                elif [y, x] in self.flagged:
+                    row += "[>]"
                 else:
                     row += "[ ]"
             print(row)
@@ -94,13 +116,26 @@ class MineSweeper:
 
 if __name__ == "__main__":
     test_game = MineSweeper()
-    for row in test_game.grid:
-        print(" "+'  '.join(str(x) for x in row))
-    test_game.get_visible()
+    # for row in test_game.grid:
+    #     print(" "+'  '.join(str(x) for x in row))
+    # test_game.get_visible()
+    system('clear')
 
     while test_game.game:
-        print()
-        x = int(input("x: "))
-        y = int(input("y: "))
-        test_game.select(x, y)
+        print(f"Tries: {test_game.tries_left}/{test_game.max_tries}")
         test_game.get_visible()
+        try:
+            select = input("'m' to mark bomb, or enter to uncover a square: ").lower()
+            if select == 'm':
+                x = int(input("x: "))
+                y = int(input("y: "))
+                test_game.select(y, x, 'm')
+            elif select == '':
+                x = int(input("x: "))
+                y = int(input("y: "))
+                test_game.select(y, x)
+        except:
+            system('clear')
+            print('invalid response!')
+    test_game.get_visible()
+    print("Game Over!")
